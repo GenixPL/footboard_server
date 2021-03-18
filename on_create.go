@@ -11,8 +11,6 @@ import (
 func OnCreate(w http.ResponseWriter, r *http.Request) {
 	fmt.Println("create")
 
-	MyUpgrader.CheckOrigin = func(r *http.Request) bool { return true }
-
 	ws, err := MyUpgrader.Upgrade(w, r, nil)
 	if err != nil {
 		log.Println(err)
@@ -27,6 +25,7 @@ func reader(conn *websocket.Conn) {
 	for {
 		messageType, p, err := conn.ReadMessage()
 		if err != nil {
+			log.Println("CLOSING")
 			log.Println(err)
 			return
 		}
