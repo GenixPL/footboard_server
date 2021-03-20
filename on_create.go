@@ -2,39 +2,13 @@ package main
 
 import (
 	"fmt"
-	"log"
 	"net/http"
-
-	"github.com/gorilla/websocket"
 )
 
-func OnCreate(w http.ResponseWriter, r *http.Request) {
-	fmt.Println("create")
+func OnCreateNewGame(w http.ResponseWriter, r *http.Request) {
+	fmt.Println("/create-new-game triggered")
 
-	ws, err := MyUpgrader.Upgrade(w, r, nil)
-	if err != nil {
-		log.Println(err)
-	}
+	CreateNewGame()
 
-	log.Println("Client Successfully Connected...")
-
-	reader(ws)
-}
-
-func reader(conn *websocket.Conn) {
-	for {
-		messageType, p, err := conn.ReadMessage()
-		if err != nil {
-			log.Println("CLOSING")
-			log.Println(err)
-			return
-		}
-
-		log.Println(string(p))
-
-		if err := conn.WriteMessage(messageType, p); err != nil {
-			log.Println(err)
-			return
-		}
-	}
+	fmt.Fprintf(w, "Dupa")
 }

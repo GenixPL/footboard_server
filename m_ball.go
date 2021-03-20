@@ -1,6 +1,6 @@
 package main
 
 type Ball struct {
-	x int
-	y int
+	X int `json:"x"`
+	Y int `json:"y"`
 }

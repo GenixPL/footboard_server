@@ -1,10 +1,10 @@
 package main
 
 type Move struct {
-	performedBy Client
+	PerformedBy Client `json:"performedBy"`
 
-	sX int
-	sY int
-	eX int
-	eY int
+	SX int `json:"sX"`
+	SY int `json:"sY"`
+	EX int `json:"eX"`
+	EY int `json:"eY"`
 }

@@ -6,5 +6,7 @@ import (
 )
 
 func OnHome(w http.ResponseWriter, r *http.Request) {
-	fmt.Println("home")
+	fmt.Println("/ triggered")
+
+	fmt.Fprintf(w, "Welcome Adventurer!")
 }

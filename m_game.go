@@ -13,39 +13,42 @@ const (
 	secondPlayerWon = "second_player_won"
 )
 
+// Game model.
+//
+// Shouldn't be created through constructor and NewGame() instead.
 type Game struct {
 	// All Clients getting updates about this game (includes player1 and player2).
-	clients []Client
+	Clients []Client `json:"clients"`
 
 	// Clients that take part in this game.
-	player1 Client
-	player2 Client
+	Player1 Client `json:"player1"`
+	Player2 Client `json:"player2"`
 
-	movesPlayer1 bool
+	MovesPlayer1 bool `json:"movesPlayer1"`
 
-	ball Ball
+	Ball Ball `json:"ball"`
 
-	moves []Move
+	Moves []Move `json:"moves"`
 
-	gameState string
+	GameState string `json:"gameState"`
 }
 
 func NewGame() Game {
 	return Game{
-		clients: []Client{},
-		player1: Client{
-			id: "",
+		Clients: []Client{},
+		Player1: Client{
+			Id: "",
 		},
-		player2: Client{
-			id: "",
+		Player2: Client{
+			Id: "",
 		},
-		movesPlayer1: true,
-		ball: Ball{
+		MovesPlayer1: true,
+		Ball: Ball{
 			// TODO give proper values
-			x: 10,
-			y: 10,
+			X: 10,
+			Y: 10,
 		},
-		moves:     []Move{},
-		gameState: waitingForPlayers,
+		Moves:     []Move{},
+		GameState: waitingForPlayers,
 	}
 }
