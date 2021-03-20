@@ -10,6 +10,36 @@ import (
 
 var MyUpgrader = websocket.Upgrader{}
 
+// ====== ROUTES ======
+
+func OnHome(w http.ResponseWriter, r *http.Request) {
+	fmt.Println("/ triggered")
+
+	fmt.Fprintf(w, "Welcome Adventurer!")
+}
+
+func OnCreateNewGame(w http.ResponseWriter, r *http.Request) {
+	fmt.Println("/create-new-game triggered")
+
+	game := CreateNewGame()
+
+	gameJsonString, err := game.ToJsonString()
+	if err != nil {
+		fmt.Fprintf(w, "error")
+		return
+	}
+
+	fmt.Fprintf(w, gameJsonString)
+}
+
+func OnGetGames(w http.ResponseWriter, r *http.Request) {
+	fmt.Println("/games triggered")
+
+	fmt.Fprintf(w, GamesToJsonStr())
+}
+
+// ======
+
 func setupRoutes() {
 	http.HandleFunc("/", OnHome)
 	http.HandleFunc("/create-new-game", OnCreateNewGame)

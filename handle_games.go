@@ -1,7 +1,6 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
 	"time"
 )
@@ -25,27 +24,30 @@ func removeEmptyGames() {
 }
 
 // Creates new game.
-func CreateNewGame() {
+func CreateNewGame() Game {
 	fmt.Println("Creating new game...")
 
-	Games = append(Games, NewGame())
+	game := NewGame()
+
+	Games = append(Games, game)
+
+	return game
 }
 
 func GamesToJsonStr() string {
 	str := "["
 
 	for i := 0; i < len(Games); i++ {
-		byteArray, err := json.Marshal(Games[i])
-		if err != nil {
-			fmt.Println("Error in Marshal, e: ", err)
-			continue
-		}
-
 		if i != 0 {
 			str += ", "
 		}
 
-		str += string(byteArray)
+		gameJsonString, err := Games[i].ToJsonString()
+		if err != nil {
+			continue
+		}
+
+		str += gameJsonString
 	}
 
 	str += "]"
