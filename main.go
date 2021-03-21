@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"path"
 
 	"github.com/gorilla/websocket"
 )
@@ -13,6 +14,14 @@ var MyUpgrader = websocket.Upgrader{}
 // ====== ROUTES ======
 
 func OnHome(w http.ResponseWriter, r *http.Request) {
+	// Check if the current request URL path exactly matches "/". If it doesn't, use
+	// the http.NotFound() function to send a 404 response to the client.
+	// Importantly, we then return from the handler. If we don't return the handler
+	// would keep executing and also write the "Hello from SnippetBox" message.
+	if r.URL.Path != "/" {
+		return
+	}
+
 	fmt.Println("/ triggered")
 
 	fmt.Fprintf(w, "Welcome Adventurer!")
@@ -38,16 +47,24 @@ func OnGetGames(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, GamesToJsonStr())
 }
 
+func OnConnect(w http.ResponseWriter, r *http.Request) {
+	fmt.Println("/connect triggered")
+
+	ws, err := MyUpgrader.Upgrade(w, r, nil)
+	if err != nil {
+		log.Println(err)
+	}
+
+	AddClient(ws, path.Base(r.URL.Path))
+}
+
 // ======
 
 func setupRoutes() {
 	http.HandleFunc("/", OnHome)
 	http.HandleFunc("/create-new-game", OnCreateNewGame)
 	http.HandleFunc("/games", OnGetGames)
-	// TODO: regular request for list of games
-	// TODO: regular request for creating game
-	// TODO: socket request for taking part in game
-
+	http.HandleFunc("/connect/", OnConnect)
 }
 
 func main() {

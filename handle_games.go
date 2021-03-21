@@ -3,6 +3,8 @@ package main
 import (
 	"fmt"
 	"time"
+
+	"github.com/gorilla/websocket"
 )
 
 var Games []Game = []Game{}
@@ -53,4 +55,17 @@ func GamesToJsonStr() string {
 	str += "]"
 
 	return str
+}
+
+func AddClient(connection *websocket.Conn, gameId string) {
+	for {
+		messageType, p, err := connection.ReadMessage()
+		if err != nil {
+			fmt.Println("CLOSING")
+			fmt.Println(err)
+			return
+		}
+
+		fmt.Println(string(p), messageType)
+	}
 }
