@@ -58,14 +58,28 @@ func GamesToJsonStr() string {
 }
 
 func AddClient(connection *websocket.Conn, gameId string) {
-	for {
-		messageType, p, err := connection.ReadMessage()
-		if err != nil {
-			fmt.Println("CLOSING")
-			fmt.Println(err)
-			return
+	var game *Game
+	for i := 0; i < len(Games); i++ {
+		if Games[i].Id == gameId {
+			game = &Games[i]
+			break
 		}
-
-		fmt.Println(string(p), messageType)
 	}
+
+	if game == nil {
+		msg := "{\"error\": \"no_such_game\", \"newGame\": null}"
+		connection.WriteMessage(1, []byte(msg))
+		return
+	}
+
+	game.AddClient(connection)
+
+	gameJsonString, err := game.ToJsonString()
+	if err != nil {
+		msg := "{\"error\": \"invalid_game_json\", \"newGame\": null}"
+		connection.WriteMessage(1, []byte(msg))
+		return
+	}
+
+	connection.WriteMessage(1, []byte(gameJsonString))
 }

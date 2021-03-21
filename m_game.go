@@ -6,6 +6,7 @@ import (
 	"fmt"
 
 	"github.com/google/uuid"
+	"github.com/gorilla/websocket"
 )
 
 // Game states
@@ -66,4 +67,26 @@ func (game Game) ToJsonString() (string, error) {
 	}
 
 	return string(byteArray), nil
+}
+
+func (game Game) InformEveryClient() {
+	for _, client := range game.Clients {
+		gameJsonString, err := game.ToJsonString()
+		if err != nil {
+			continue
+		}
+
+		client.connection.WriteMessage(1, []byte(gameJsonString))
+	}
+}
+
+func (game *Game) AddClient(connection *websocket.Conn) {
+	newClient := Client{
+		connection:  connection,
+		Id:          uuid.NewString(),
+		SecondsLeft: 60 * 5,
+	}
+
+	game.Clients = append(game.Clients, newClient)
+
 }

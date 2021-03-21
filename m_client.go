@@ -1,7 +1,9 @@
 package main
 
+import "github.com/gorilla/websocket"
+
 type Client struct {
-	// TODO: add socket stuff here
+	connection *websocket.Conn
 
 	// If it's an empty string then the object should be treated as nil.
 	Id string `json:"id"`
