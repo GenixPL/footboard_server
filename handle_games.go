@@ -67,7 +67,7 @@ func AddClient(connection *websocket.Conn, gameId string) {
 	}
 
 	if game == nil {
-		msg := "{\"error\": \"no_such_game\", \"newGame\": null}"
+		msg := "{\"error\": \"no_such_game\", \"game\": null}"
 		connection.WriteMessage(1, []byte(msg))
 		return
 	}
@@ -76,11 +76,11 @@ func AddClient(connection *websocket.Conn, gameId string) {
 
 	gameJsonString, err := game.ToJsonString()
 	if err != nil {
-		msg := "{\"error\": \"invalid_game_json\", \"newGame\": null}"
+		msg := "{\"error\": \"invalid_game_json\", \"game\": null}"
 		connection.WriteMessage(1, []byte(msg))
 		return
 	}
 
-	msg := "{\"error\": null, \"newGame\": " + gameJsonString + "}"
+	msg := "{\"error\": null, \"game\": " + gameJsonString + "}"
 	connection.WriteMessage(1, []byte(msg))
 }
