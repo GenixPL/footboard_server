@@ -81,5 +81,6 @@ func AddClient(connection *websocket.Conn, gameId string) {
 		return
 	}
 
-	connection.WriteMessage(1, []byte(gameJsonString))
+	msg := "{\"error\": null, \"newGame\": " + gameJsonString + "}"
+	connection.WriteMessage(1, []byte(msg))
 }
