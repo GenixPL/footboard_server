@@ -3,7 +3,7 @@ package main
 import (
 	"fmt"
 	gm "footboard_server/models/game"
-	u "footboard_server/models/utils"
+	u "footboard_server/utils"
 
 	"github.com/gorilla/websocket"
 )

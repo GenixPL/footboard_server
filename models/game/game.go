@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	m "footboard_server/models"
-	u "footboard_server/models/utils"
+	u "footboard_server/utils"
 
 	"github.com/google/uuid"
 )
@@ -32,6 +32,7 @@ const (
 	errorGameGameIsNotRunning       = "game_is_not_running"
 	errorNonPlayerCannotMove        = "non_player_cannot_move"
 	errorNotYourTurn                = "not_your_turn"
+	errorInvalidMove                = "invalid_move"
 )
 
 // Commands
@@ -59,7 +60,12 @@ type Game struct {
 	MovesPlayer1 bool `json:"movesPlayer1"`
 
 	// Describes current position of the ball.
-	Ball m.Ball `json:"ball"`
+	Ball m.Point `json:"ball"`
+
+	// List of already visited VisitedPoints.
+	VisitedPoints []m.Point `json:"visitedPoints"`
+
+	PossibleMoves []m.Point `json:"possibleMoves"`
 
 	// List of Moves that were performed.
 	Moves []m.Move `json:"moves"`
@@ -74,9 +80,25 @@ func NewGame() Game {
 		Id:           uuid.NewString(),
 		Clients:      []m.Client{},
 		MovesPlayer1: true,
-		Ball: m.Ball{
+		Ball: m.Point{
 			X: 0,
 			Y: 0,
+		},
+		VisitedPoints: []m.Point{
+			{
+				X: 0,
+				Y: 0,
+			},
+		},
+		PossibleMoves: []m.Point{
+			{X: -1, Y: -1},
+			{X: 0, Y: -1},
+			{X: 1, Y: -1},
+			{X: -1, Y: 0},
+			{X: 1, Y: 0},
+			{X: -1, Y: 1},
+			{X: 0, Y: 1},
+			{X: 1, Y: 1},
 		},
 		Moves: []m.Move{},
 		State: gameStateWaitingForPlayers,

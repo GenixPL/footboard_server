@@ -1,6 +1,6 @@
 package game
 
-import u "footboard_server/models/utils"
+import u "footboard_server/utils"
 
 // Removes client at given index.
 //

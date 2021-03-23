@@ -2,7 +2,7 @@ package game
 
 import (
 	m "footboard_server/models"
-	u "footboard_server/models/utils"
+	u "footboard_server/utils"
 
 	"github.com/gorilla/websocket"
 )

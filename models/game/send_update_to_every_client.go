@@ -1,7 +1,7 @@
 package game
 
 import (
-	u "footboard_server/models/utils"
+	u "footboard_server/utils"
 )
 
 func (game *Game) SendUpdateToEveryClient() {
