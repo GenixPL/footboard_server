@@ -10,7 +10,7 @@ func (game *Game) handleMove(client *m.Client, jsonReq map[string]interface{}) {
 	y := int(jsonReq["val"].(map[string]interface{})["y"].(float64))
 
 	// Check if the game is in proper state.
-	if !(game.state == gameStateRunning) {
+	if !(game.State == gameStateRunning) {
 		client.Connection.WriteMessage(1, u.JsonedErr(errorGameGameIsNotRunning))
 		return
 	}

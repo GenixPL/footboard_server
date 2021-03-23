@@ -9,7 +9,7 @@ func (game *Game) handleOccupyPlace(client *m.Client, jsonReq map[string]interfa
 	place := int(jsonReq["val"].(float64))
 
 	// Check game state.
-	if !(game.state == gameStateWaitingForPlayers || game.state == gameStateHasOnePlayer) {
+	if !(game.State == gameStateWaitingForPlayers || game.State == gameStateHasOnePlayer) {
 		client.Connection.WriteMessage(1, u.JsonedErr(errorGameIsNotWaitingForPlayers))
 		return
 	}
@@ -23,9 +23,9 @@ func (game *Game) handleOccupyPlace(client *m.Client, jsonReq map[string]interfa
 		game.Player1 = client
 
 		if game.Player2 != nil {
-			game.state = gameStateHasTwoPlayers
+			game.State = gameStateHasTwoPlayers
 		} else {
-			game.state = gameStateHasOnePlayer
+			game.State = gameStateHasOnePlayer
 		}
 
 		game.SendUpdateToEveryClient()
@@ -40,9 +40,9 @@ func (game *Game) handleOccupyPlace(client *m.Client, jsonReq map[string]interfa
 		game.Player2 = client
 
 		if game.Player1 != nil {
-			game.state = gameStateHasTwoPlayers
+			game.State = gameStateHasTwoPlayers
 		} else {
-			game.state = gameStateHasOnePlayer
+			game.State = gameStateHasOnePlayer
 		}
 
 		game.SendUpdateToEveryClient()

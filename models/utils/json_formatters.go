@@ -27,7 +27,7 @@ func JsonedMsgWithUid(game string, uid string) []byte {
 
 	msg += `"error": null,`
 	msg += `"game": ` + game + ", "
-	msg += `"uid": ` + uid
+	msg += `"uid": "` + uid + `"`
 
 	msg += "}"
 
@@ -39,7 +39,7 @@ func JsonedErrWithUid(err string, uid string) []byte {
 
 	msg += `"error": "` + err + `", `
 	msg += `"game": null, `
-	msg += `"uid": ` + uid
+	msg += `"uid": "` + uid + `"`
 
 	msg += "}"
 

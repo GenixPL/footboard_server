@@ -3,8 +3,13 @@ package main
 import (
 	"fmt"
 	gm "footboard_server/models/game"
+	u "footboard_server/models/utils"
 
 	"github.com/gorilla/websocket"
+)
+
+const (
+	errorNoSuchGame = "no_such_game"
 )
 
 var Games []gm.Game = []gm.Game{}
@@ -52,8 +57,7 @@ func AddClientToGame(connection *websocket.Conn, gameId string) {
 
 	// If client wants to connect to a game that doesn't exist.
 	if game == nil {
-		msg := "{\"error\": \"no_such_game\", \"game\": null}"
-		connection.WriteMessage(1, []byte(msg))
+		connection.WriteMessage(1, u.JsonedErr(errorNoSuchGame))
 		return
 	}
 

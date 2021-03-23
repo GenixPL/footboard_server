@@ -65,7 +65,7 @@ type Game struct {
 	Moves []m.Move `json:"moves"`
 
 	// String secribing current state of this game.
-	state string `json:"gameState"`
+	State string `json:"gameState"`
 }
 
 // Creates new Game object with proper initial values.
@@ -79,7 +79,7 @@ func NewGame() Game {
 			Y: 0,
 		},
 		Moves: []m.Move{},
-		state: gameStateWaitingForPlayers,
+		State: gameStateWaitingForPlayers,
 	}
 }
 
