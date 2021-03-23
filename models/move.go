@@ -1,4 +1,4 @@
-package main
+package models
 
 type Move struct {
 	PerformedBy string `json:"performedBy"`

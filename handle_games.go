@@ -2,40 +2,24 @@ package main
 
 import (
 	"fmt"
-	"time"
+	gm "footboard_server/models/game"
 
 	"github.com/gorilla/websocket"
 )
 
-var Games []Game = []Game{}
+var Games []gm.Game = []gm.Game{}
 
-// Periodically removes games without clients.
-func StartPeriodicEmptyGamesRemoval() {
-	duration := time.Duration(5) * time.Minute
-
-	ticker := time.NewTicker(duration)
-
-	for range ticker.C {
-		removeEmptyGames()
-	}
-}
-
-// Removes games that don't have any clients.
-func removeEmptyGames() {
-	fmt.Println("Removing empty games...")
-}
-
-// Creates new game.
-func CreateNewGame() Game {
+// Creates new Game and adds it to the Games array.
+func CreateNewGame() gm.Game {
 	fmt.Println("Creating new game...")
 
-	game := NewGame()
-
+	game := gm.NewGame()
 	Games = append(Games, game)
 
 	return game
 }
 
+// Returns string consting of Games as JSON array.
 func GamesToJsonStr() string {
 	str := "["
 
@@ -57,8 +41,8 @@ func GamesToJsonStr() string {
 	return str
 }
 
-func AddClient(connection *websocket.Conn, gameId string) {
-	var game *Game
+func AddClientToGame(connection *websocket.Conn, gameId string) {
+	var game *gm.Game
 	for i := 0; i < len(Games); i++ {
 		if Games[i].Id == gameId {
 			game = &Games[i]
@@ -66,6 +50,7 @@ func AddClient(connection *websocket.Conn, gameId string) {
 		}
 	}
 
+	// If client wants to connect to a game that doesn't exist.
 	if game == nil {
 		msg := "{\"error\": \"no_such_game\", \"game\": null}"
 		connection.WriteMessage(1, []byte(msg))

@@ -55,7 +55,7 @@ func OnConnect(w http.ResponseWriter, r *http.Request) {
 		log.Println(err)
 	}
 
-	AddClient(ws, path.Base(r.URL.Path))
+	AddClientToGame(ws, path.Base(r.URL.Path))
 }
 
 // ======
@@ -71,7 +71,6 @@ func main() {
 	fmt.Println("Go Web!")
 
 	setupRoutes()
-	// StartPeriodicEmptyGamesRemoval()
 
 	log.Fatal(http.ListenAndServe(":8080", nil))
 }
