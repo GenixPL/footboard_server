@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"footboard_server/models"
 	"reflect"
 
 	"github.com/google/uuid"
@@ -30,12 +31,16 @@ const (
 	errorGameIsNotWaitingForPlayers = "game_is_not_waiting_for_players"
 	errorCouldntParseGameToJson     = "couldnt_parse_game_to_json"
 	errorGameCannotBeStartedYet     = "game_cannot_be_started_yet"
+	errorGameGameIsNotRunning       = "game_is_not_running"
+	errorNonPlayerCannotMove        = "non_player_cannot_move"
+	errorNotYourTurn                = "not_your_turn"
 )
 
 // Commands
 const (
 	commandOccupyPlace = "occupy_place"
 	commandStartGame   = "start_game"
+	commandMove        = "move"
 )
 
 // Game model.
@@ -53,7 +58,7 @@ type Game struct {
 
 	MovesPlayer1 bool `json:"movesPlayer1"`
 
-	Ball Ball `json:"ball"`
+	Ball models.Ball `json:"ball"`
 
 	Moves []Move `json:"moves"`
 
@@ -65,7 +70,7 @@ func NewGame() Game {
 		Id:           uuid.NewString(),
 		Clients:      []Client{},
 		MovesPlayer1: true,
-		Ball: Ball{
+		Ball: models.Ball{
 			// TODO give proper values
 			X: 10,
 			Y: 10,
@@ -211,6 +216,11 @@ func (game *Game) handleMessage(client *Client, msg string) {
 		game.handleStartGame(client, jsonReq)
 		return
 	}
+
+	if command == commandMove {
+		game.handleMove(client, jsonReq)
+		return
+	}
 }
 
 // ====== COMMANDS HANDLING
@@ -287,6 +297,47 @@ func (game *Game) handleStartGame(client *Client, jsonReq map[string]interface{}
 		// Both players have started.
 		game.GameState = gameStateRunning
 	}
+
+	game.InformEveryClient()
+}
+
+func (game *Game) handleMove(client *Client, jsonReq map[string]interface{}) {
+	x := int(jsonReq["val"].(map[string]interface{})["x"].(float64))
+	y := int(jsonReq["val"].(map[string]interface{})["y"].(float64))
+
+	// ALREADY HAS PLAYERS
+	if !(game.GameState == gameStateRunning) {
+		msg := getErrorJsonString(errorGameGameIsNotRunning)
+		client.connection.WriteMessage(1, []byte(msg))
+		return
+	}
+
+	isPlayer1 := client.Id == game.Player1.Id
+	isPlayer2 := client.Id == game.Player2.Id
+
+	if !isPlayer1 && !isPlayer2 {
+		msg := getErrorJsonString(errorNonPlayerCannotMove)
+		client.connection.WriteMessage(1, []byte(msg))
+		return
+	}
+
+	if (game.MovesPlayer1 && isPlayer2) || (!game.MovesPlayer1 && isPlayer1) {
+		msg := getErrorJsonString(errorNotYourTurn)
+		client.connection.WriteMessage(1, []byte(msg))
+		return
+	}
+
+	newMove := Move{
+		SX:          game.Ball.X,
+		SY:          game.Ball.Y,
+		EX:          x,
+		EY:          y,
+		PerformedBy: client.Id,
+	}
+
+	game.Moves = append(game.Moves, newMove)
+
+	fmt.Println("Move: (", x, ", ", y, ")")
 
 	game.InformEveryClient()
 }

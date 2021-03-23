@@ -1,4 +1,4 @@
-package main
+package models
 
 type Ball struct {
 	X int `json:"x"`

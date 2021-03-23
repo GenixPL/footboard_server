@@ -1,4 +1,4 @@
-module paczki
+module footboard_server
 
 go 1.16
 
