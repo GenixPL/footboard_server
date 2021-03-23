@@ -25,13 +25,17 @@ const (
 
 // Errors
 const (
-	errorInvalidJson          = "invalid_json"
-	errorPlaceAlreadyOccupied = "place_already_occupied"
+	errorReceivedInvalidJson        = "received_invalid_json"
+	errorPlaceAlreadyOccupied       = "place_already_occupied"
+	errorGameIsNotWaitingForPlayers = "game_is_not_waiting_for_players"
+	errorCouldntParseGameToJson     = "couldnt_parse_game_to_json"
+	errorGameCannotBeStartedYet     = "game_cannot_be_started_yet"
 )
 
 // Commands
 const (
 	commandOccupyPlace = "occupy_place"
+	commandStartGame   = "start_game"
 )
 
 // Game model.
@@ -84,16 +88,25 @@ func (game Game) ToJsonString() (string, error) {
 func (game *Game) InformEveryClient() {
 	clientsToRemove := []int{}
 
+	gameJsonString, err := game.ToJsonString()
+
 	for i, client := range game.Clients {
-		gameJsonString, err := game.ToJsonString()
+		fmt.Println("Informing client: ", client.Id)
+
 		if err != nil {
-			continue
+			msg := getErrorJsonString(errorCouldntParseGameToJson)
+			err2 := client.connection.WriteMessage(1, []byte(msg))
+			if err2 != nil {
+				clientsToRemove = append(clientsToRemove, i)
+				continue
+			}
 		}
 
 		msg := "{\"error\": null, \"game\": " + gameJsonString + "}"
 		err2 := client.connection.WriteMessage(1, []byte(msg))
 		if err2 != nil {
 			clientsToRemove = append(clientsToRemove, i)
+			continue
 		}
 	}
 
@@ -107,9 +120,22 @@ func (game *Game) AddClient(connection *websocket.Conn) {
 		connection:  connection,
 		Id:          uuid.NewString(),
 		SecondsLeft: 60 * 5,
+		StartedGame: false,
 	}
 
 	game.Clients = append(game.Clients, newClient)
+
+	gameJsonString, err := game.ToJsonString()
+	if err != nil {
+		msg := "{\"error\": \"invalid_game_json\", \"game\": null, \"your_id\": \"" + newClient.Id + "\"}"
+		connection.WriteMessage(1, []byte(msg))
+		return
+	}
+
+	msg := "{\"error\": null, \"game\": " + gameJsonString + ", \"your_id\": \"" + newClient.Id + "\"}"
+	connection.WriteMessage(1, []byte(msg))
+
+	game.InformEveryClient()
 
 	go game.handleMessages(&newClient)
 }
@@ -136,6 +162,12 @@ func (game *Game) RemoveClient(client *Client) {
 		return
 	}
 
+	if game.Player1.Id == client.Id {
+		game.Player1 = nil
+	} else if game.Player2.Id == client.Id {
+		game.Player2 = nil
+	}
+
 	game.RemoveClientUnderIndex(index)
 }
 
@@ -158,7 +190,7 @@ func (game *Game) handleMessage(client *Client, msg string) {
 	var jsonReq map[string]interface{}
 	err := json.Unmarshal([]byte(msg), &jsonReq)
 	if err != nil {
-		msg := getErrorJsonString(errorInvalidJson)
+		msg := getErrorJsonString(errorReceivedInvalidJson)
 		client.connection.WriteMessage(1, []byte(msg))
 		return
 	}
@@ -174,12 +206,24 @@ func (game *Game) handleMessage(client *Client, msg string) {
 		game.handleOccupyPlace(client, jsonReq)
 		return
 	}
+
+	if command == commandStartGame {
+		game.handleStartGame(client, jsonReq)
+		return
+	}
 }
 
 // ====== COMMANDS HANDLING
 
 func (game *Game) handleOccupyPlace(client *Client, jsonReq map[string]interface{}) {
 	place := jsonReq["val"]
+
+	// ALREADY HAS PLAYERS
+	if !(game.GameState == gameStateWaitingForPlayers || game.GameState == gameStateHasOnePlayer) {
+		msg := getErrorJsonString(errorGameIsNotWaitingForPlayers)
+		client.connection.WriteMessage(1, []byte(msg))
+		return
+	}
 
 	if place == 1.0 {
 		if game.Player1 != nil {
@@ -189,6 +233,13 @@ func (game *Game) handleOccupyPlace(client *Client, jsonReq map[string]interface
 		}
 
 		game.Player1 = client
+
+		if game.Player2 != nil {
+			game.GameState = gameStateHasTwoPlayers
+		} else {
+			game.GameState = gameStateHasOnePlayer
+		}
+
 		game.InformEveryClient()
 		return
 
@@ -200,14 +251,44 @@ func (game *Game) handleOccupyPlace(client *Client, jsonReq map[string]interface
 		}
 
 		game.Player2 = client
+
+		if game.Player1 != nil {
+			game.GameState = gameStateHasTwoPlayers
+		} else {
+			game.GameState = gameStateHasOnePlayer
+		}
+
 		game.InformEveryClient()
 		return
 
 	} else {
-		msg := getErrorJsonString(errorInvalidJson)
+		msg := getErrorJsonString(errorReceivedInvalidJson)
 		client.connection.WriteMessage(1, []byte(msg))
 		return
 	}
+}
+
+func (game *Game) handleStartGame(client *Client, jsonReq map[string]interface{}) {
+	if game.GameState != gameStateHasTwoPlayers && game.GameState != gameStateOnePlayerStarted {
+		msg := getErrorJsonString(errorGameCannotBeStartedYet)
+		client.connection.WriteMessage(1, []byte(msg))
+		return
+	}
+
+	client.StartedGame = true
+
+	if game.Player1.StartedGame && !game.Player2.StartedGame {
+		// Only 1st player has started.
+		game.GameState = gameStateOnePlayerStarted
+	} else if game.Player1.StartedGame && !game.Player2.StartedGame {
+		// Only 2nd player has started.
+		game.GameState = gameStateOnePlayerStarted
+	} else if game.Player1.StartedGame && game.Player2.StartedGame {
+		// Both players have started.
+		game.GameState = gameStateRunning
+	}
+
+	game.InformEveryClient()
 }
 
 // ====== HELPERS

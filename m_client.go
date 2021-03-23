@@ -9,4 +9,5 @@ type Client struct {
 	Id string `json:"id"`
 
 	SecondsLeft uint16 `json:"secondsLeft"`
+	StartedGame bool   `json:"startedGame"`
 }

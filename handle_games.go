@@ -73,14 +73,4 @@ func AddClient(connection *websocket.Conn, gameId string) {
 	}
 
 	game.AddClient(connection)
-
-	gameJsonString, err := game.ToJsonString()
-	if err != nil {
-		msg := "{\"error\": \"invalid_game_json\", \"game\": null}"
-		connection.WriteMessage(1, []byte(msg))
-		return
-	}
-
-	msg := "{\"error\": null, \"game\": " + gameJsonString + "}"
-	connection.WriteMessage(1, []byte(msg))
 }
