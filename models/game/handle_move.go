@@ -18,7 +18,7 @@ func (game *Game) handleMove(client *m.Client, jsonReq map[string]interface{}) {
 	isPlayer1 := client.Id == game.Player1.Id
 	isPlayer2 := client.Id == game.Player2.Id
 
-	// Check if the client is at least one of the players.
+	// Check if the client is one of the players.
 	if !isPlayer1 && !isPlayer2 {
 		client.Connection.WriteMessage(1, u.JsonedErr(errorNonPlayerCannotMove))
 		return
@@ -30,11 +30,13 @@ func (game *Game) handleMove(client *m.Client, jsonReq map[string]interface{}) {
 		return
 	}
 
-	// Check if haven't moved outside of boundaries.
-	if !moveIsValid(x, y) {
+	// Check if the move is one of the valid moves.
+	if !moveIsPossible(game.PossiblePoints, x, y) {
 		client.Connection.WriteMessage(1, u.JsonedErr(errorInvalidMove))
 		return
 	}
+
+	// FROM HERE WE KNOW THAT THE MOVE IS VALID
 
 	newMove := m.Move{
 		SP: m.Point{
@@ -48,19 +50,11 @@ func (game *Game) handleMove(client *m.Client, jsonReq map[string]interface{}) {
 		PerformedBy: client.Id,
 	}
 
-	// Check if such move has already been done
-	if moveExists(game.Moves, newMove) {
-		client.Connection.WriteMessage(1, u.JsonedErr(errorInvalidMove))
-		return
-	}
-
 	game.Moves = append(game.Moves, newMove)
-	game.Ball = m.Point{
-		X: x,
-		Y: y,
-	}
+	game.Ball = m.Point{X: x, Y: y}
+	game.PossiblePoints = getPossiblePoints(game.Moves, x, y)
 
-	// Check if the point has already been visited.
+	// Check if the point was already visited (if it was then it's still the player's turn).
 	if !pointWasVisited(game.VisitedPoints, x, y) {
 		if isPlayer1 {
 			game.MovesPlayer1 = false
@@ -69,10 +63,13 @@ func (game *Game) handleMove(client *m.Client, jsonReq map[string]interface{}) {
 		}
 	}
 
-	u.LogV("handleMove", "new move: ("+string(rune(x))+", "+string(rune(y))+")")
+	if moveIsInLowerGoal(x, y) {
+		game.State = gameStateFirstPlayerWon
 
-	// Check possible moves (coveers corner cases).
-	if len(possibleMoves(game.Moves, x, y)) == 0 {
+	} else if moveIsInUpperGoal(x, y) {
+		game.State = gameStateSecondPlayerWon
+
+	} else if len(game.PossiblePoints) == 0 {
 		if isPlayer1 {
 			game.State = gameStateSecondPlayerWon
 		} else {
@@ -80,44 +77,16 @@ func (game *Game) handleMove(client *m.Client, jsonReq map[string]interface{}) {
 		}
 	}
 
-	// Check if Player1 has won.
-	if moveIsInLowerGoal(x, y) {
-		game.State = gameStateFirstPlayerWon
-	}
-
-	// Check if Player2 has won.
-	if moveIsInUpperGoal(x, y) {
-		game.State = gameStateSecondPlayerWon
-	}
-
 	game.SendUpdateToEveryClient()
 }
 
-func moveIsInUpperGoal(x int, y int) bool {
-	return (y == 6) && (-1 <= x && x <= 1)
-}
-
-func moveIsInLowerGoal(x int, y int) bool {
-	return (y == -6) && (-1 <= x && x <= 1)
-}
-
-func pointIsCorner(x int, y int) bool {
-	return (x == -4 && y == -5) || (x == 4 && y == -5) || (x == -4 && y == 5) || (x == 4 && y == 5)
-}
-
-// TODO doesnt cover walking on walls
-func moveIsValid(x int, y int) bool {
-	// One of the goals.
-	if moveIsInUpperGoal(x, y) || moveIsInUpperGoal(x, y) {
-		return true
+func moveIsPossible(possiblePoints []m.Point, x int, y int) bool {
+	for _, p := range possiblePoints {
+		if p.X == x && p.Y == y {
+			return true
+		}
 	}
 
-	// Main field area.
-	if (-4 <= x && x <= 4) && (-5 <= y && y <= 5) {
-		return true
-	}
-
-	// Otherwise.
 	return false
 }
 
@@ -147,113 +116,95 @@ func pointWasVisited(vistedPoint []m.Point, x int, y int) bool {
 	return false
 }
 
-// TODO: test this
-func possibleMoves(moves []m.Move, x int, y int) []m.Point {
+func moveIsInUpperGoal(x int, y int) bool {
+	return (y == 6) && (-1 <= x && x <= 1)
+}
+
+func moveIsInLowerGoal(x int, y int) bool {
+	return (y == -6) && (-1 <= x && x <= 1)
+}
+
+func getPossiblePoints(moves []m.Move, x int, y int) []m.Point {
 	possiblePoints := []m.Point{}
 
+	// edge rows
+	isLeftMostRow := (x == -4)
+	isRightMostRow := (x == 4)
+	isTopMostRow := (y == 5)
+	isBottomMostRow := (y == -5)
+
+	// top goal line
+	isLeftTopGoalLine := (x == -1 && y == 5)
+	isCenterTopGoalLine := (x == 0 && y == 5)
+	isRightTopGoalLine := (x == 1 && y == 5)
+
+	// bottom goal line
+	isLeftBottomGoalLine := (x == -1 && y == -5)
+	isCenterBottomGoalLine := (x == 0 && y == -5)
+	isRightBottomGoalLine := (x == 1 && y == -5)
+
 	// Top Left
-	if x >= -3 && y <= 4 {
+	if !isLeftMostRow && !isTopMostRow {
+		possiblePoints = append(possiblePoints, m.Point{X: x - 1, Y: y + 1})
+	} else if isCenterTopGoalLine || isRightTopGoalLine {
 		possiblePoints = append(possiblePoints, m.Point{X: x - 1, Y: y + 1})
 	}
 
 	// Top
-	if (x != -4 && x != 4) && y <= 4 {
+	if !isLeftMostRow && !isTopMostRow && !isRightMostRow {
+		possiblePoints = append(possiblePoints, m.Point{X: x, Y: y + 1})
+	} else if isCenterTopGoalLine {
 		possiblePoints = append(possiblePoints, m.Point{X: x, Y: y + 1})
 	}
 
 	// Top Right
-	if x <= 3 && y <= 4 {
+	if !isRightMostRow && !isTopMostRow {
+		possiblePoints = append(possiblePoints, m.Point{X: x + 1, Y: y + 1})
+	} else if isLeftTopGoalLine || isCenterTopGoalLine {
 		possiblePoints = append(possiblePoints, m.Point{X: x + 1, Y: y + 1})
 	}
 
 	// Left
-	if x >= -3 && (y != 5 && y != -5) {
+	if !isLeftMostRow && !isTopMostRow && !isBottomMostRow {
+		possiblePoints = append(possiblePoints, m.Point{X: x - 1, Y: y})
+	} else if isCenterTopGoalLine || isRightTopGoalLine {
+		possiblePoints = append(possiblePoints, m.Point{X: x - 1, Y: y})
+	} else if isCenterBottomGoalLine || isRightBottomGoalLine {
 		possiblePoints = append(possiblePoints, m.Point{X: x - 1, Y: y})
 	}
 
 	// Right
-	if x <= 3 && (y != 5 && y != -5) {
+	if !isTopMostRow && !isRightMostRow && !isBottomMostRow {
+		possiblePoints = append(possiblePoints, m.Point{X: x + 1, Y: y})
+	} else if isLeftTopGoalLine || isCenterTopGoalLine {
+		possiblePoints = append(possiblePoints, m.Point{X: x + 1, Y: y})
+	} else if isLeftBottomGoalLine || isCenterBottomGoalLine {
 		possiblePoints = append(possiblePoints, m.Point{X: x + 1, Y: y})
 	}
 
 	// Bottom Left
-	if x >= -3 && y >= -4 {
+	if !isLeftMostRow && !isBottomMostRow {
+		possiblePoints = append(possiblePoints, m.Point{X: x - 1, Y: y - 1})
+	} else if isRightBottomGoalLine || isCenterBottomGoalLine {
 		possiblePoints = append(possiblePoints, m.Point{X: x - 1, Y: y - 1})
 	}
 
 	// Bottom
-	if (x != -4 && x != 4) && y >= 4 {
+	if !isLeftMostRow && !isRightMostRow && !isBottomMostRow {
+		possiblePoints = append(possiblePoints, m.Point{X: x, Y: y - 1})
+	} else if isCenterBottomGoalLine {
 		possiblePoints = append(possiblePoints, m.Point{X: x, Y: y - 1})
 	}
 
 	// Bottom Right
-	if x <= 3 && y >= -4 {
+	if !isRightMostRow && !isBottomMostRow {
 		possiblePoints = append(possiblePoints, m.Point{X: x + 1, Y: y - 1})
-	}
-
-	// The above cover main field point, so we have to add the near goal ones.
-	// =================
-
-	// Top left goal line.
-	if x == -1 && y == 5 {
-		// Top Right
-		possiblePoints = append(possiblePoints, m.Point{X: x + 1, Y: y + 1})
-		// Right
-		possiblePoints = append(possiblePoints, m.Point{X: x + 1, Y: y})
-	}
-
-	// Top center goal line.
-	if x == 0 && y == 5 {
-		// Top Right
-		possiblePoints = append(possiblePoints, m.Point{X: x + 1, Y: y + 1})
-		// Top Left
-		possiblePoints = append(possiblePoints, m.Point{X: x - 1, Y: y + 1})
-		// Right
-		possiblePoints = append(possiblePoints, m.Point{X: x + 1, Y: y})
-		// Left
-		possiblePoints = append(possiblePoints, m.Point{X: x - 1, Y: y})
-	}
-
-	// Top right goal line.
-	if x == 1 && y == 5 {
-		// Top Left
-		possiblePoints = append(possiblePoints, m.Point{X: x - 1, Y: y + 1})
-		// Left
-		possiblePoints = append(possiblePoints, m.Point{X: x - 1, Y: y})
-	}
-
-	// Bottom left goal line.
-	if x == -1 && y == -5 {
-		// Bottom Right
+	} else if isLeftBottomGoalLine || isCenterBottomGoalLine {
 		possiblePoints = append(possiblePoints, m.Point{X: x + 1, Y: y - 1})
-		// Right
-		possiblePoints = append(possiblePoints, m.Point{X: x + 1, Y: y})
-	}
-
-	// Bottom center goal line.
-	if x == 0 && y == -5 {
-		// Bottom Right
-		possiblePoints = append(possiblePoints, m.Point{X: x + 1, Y: y - 1})
-		// Bottom Left
-		possiblePoints = append(possiblePoints, m.Point{X: x - 1, Y: y - 1})
-		// Right
-		possiblePoints = append(possiblePoints, m.Point{X: x + 1, Y: y})
-		// Left
-		possiblePoints = append(possiblePoints, m.Point{X: x - 1, Y: y})
-	}
-
-	// Bottom right goal line.
-	if x == 1 && y == -5 {
-		// Bottom Left
-		possiblePoints = append(possiblePoints, m.Point{X: x - 1, Y: y - 1})
-		// Left
-		possiblePoints = append(possiblePoints, m.Point{X: x - 1, Y: y})
 	}
 
 	// Remove already performed moves.
-	// =================
-
-	wantedPoints := []m.Point{}
+	filteredPoints := []m.Point{}
 	for _, p := range possiblePoints {
 		newMove := m.Move{
 			SP: m.Point{X: x, Y: y},
@@ -261,9 +212,9 @@ func possibleMoves(moves []m.Move, x int, y int) []m.Point {
 		}
 
 		if !moveExists(moves, newMove) {
-			wantedPoints = append(wantedPoints, p)
+			filteredPoints = append(filteredPoints, p)
 		}
 	}
 
-	return wantedPoints
+	return filteredPoints
 }

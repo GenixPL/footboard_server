@@ -65,7 +65,7 @@ type Game struct {
 	// List of already visited VisitedPoints.
 	VisitedPoints []m.Point `json:"visitedPoints"`
 
-	PossibleMoves []m.Point `json:"possibleMoves"`
+	PossiblePoints []m.Point `json:"possibleMoves"`
 
 	// List of Moves that were performed.
 	Moves []m.Move `json:"moves"`
@@ -90,7 +90,7 @@ func NewGame() Game {
 				Y: 0,
 			},
 		},
-		PossibleMoves: []m.Point{
+		PossiblePoints: []m.Point{
 			{X: -1, Y: -1},
 			{X: 0, Y: -1},
 			{X: 1, Y: -1},
