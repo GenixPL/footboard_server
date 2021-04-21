@@ -55,6 +55,7 @@ func (game *Game) handleMove(client *m.Client, jsonReq map[string]interface{}) {
 	game.PossiblePoints = getPossiblePoints(game.Moves, x, y)
 
 	// Check if the point was already visited (if it was then it's still the player's turn).
+	// TODO: sth is wrong when checking for already visited points - you cannot bounce in one turn
 	if !pointWasVisited(game.VisitedPoints, x, y) {
 		if isPlayer1 {
 			game.MovesPlayer1 = false

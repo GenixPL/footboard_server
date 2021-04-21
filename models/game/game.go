@@ -65,7 +65,7 @@ type Game struct {
 	// List of already visited VisitedPoints.
 	VisitedPoints []m.Point `json:"visitedPoints"`
 
-	PossiblePoints []m.Point `json:"possibleMoves"`
+	PossiblePoints []m.Point `json:"possiblePoints"`
 
 	// List of Moves that were performed.
 	Moves []m.Move `json:"moves"`
